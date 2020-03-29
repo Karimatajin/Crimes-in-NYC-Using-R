@@ -1,8 +1,6 @@
 # Crimes-in-NYC
 
-# Welcome 
-
-to this Exploratory Analysis of the first 6 months of 2019 “New York City Crimes” dataset. I really enjoyed diving into this dataset, and here’s why I think you will too:
+Welcome to this Exploratory Analysis of the first months of 2019 “New York City Crimes” dataset. I really enjoyed diving into this dataset, and here’s why I think you will too:
 
 It includes diverse datatypes - this analysis includes datetimes, and latitude/longitude point data
 
