@@ -1,0 +1,266 @@
+---
+title: "Crimes in NYC"
+author: "Karima_tajin"
+date: "December 10, 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+In this project, I am analyzing the Crimes in NYC during the first 6 month of 2019. the data set is available in NYC Open Data website: https://data.cityofnewyork.us/browse?tags=crime, with this dataset I would like to know the following questions:
+
+1. What parts of the city have the most crime complaints during 2019?
+
+2. Have the crimes complaints improved over months and days during 2019?
+
+3. What type of offenses or offense categories is considered to be higher?
+
+4. Which premises have the highest crime complaints?
+
+6. Which victim gendre to be more attacked by suspicious?
+
+7. Which geographical area has more crimes complaints ?
+
+
+### I Data Set Basic Statistics
+
+The first step is to start structuring the dataset by checking how many observations, and taking a look of what information could be interesting.
+
+```{r crimes}
+# set the working directory
+setwd("/Users/karimaidrissi/Desktop/DSSA 5101")
+# loading tidyverse library:
+library(tidyverse)
+# loading plotly library:
+library(plotly)
+# read the file
+crimes <- read_csv("complaint.csv")
+# using object size to see the size in memory.
+#object.size(crimes)
+# The glimpse to get dimimension and structure :
+#glimpse(crimes)
+# The basic statistics for all columns in the dataset:
+#summary(crimes)
+# The structure of the dataset:
+#str(crimes)
+# the missing values in our dataset:
+#table(is.na(crimes))
+
+```
+
+```{r}
+# extracting specific columns from our data:
+crimes$CMPLNT_FR_DT <- as.Date(as.character(crimes$CMPLNT_FR_DT), format = "%m/%d/%y")
+crimes <- crimes %>%
+  select(CMPLNT_NUM, BORO_NM, CMPLNT_FR_DT, CMPLNT_FR_TM, JURIS_DESC, KY_CD,LAW_CAT_CD, OFNS_DESC,PREM_TYP_DESC, SUSP_AGE_GROUP, SUSP_RACE, SUSP_SEX, VIC_AGE_GROUP, VIC_RACE, VIC_SEX, Latitude, Longitude) %>% filter( CMPLNT_FR_DT >= as.Date("2019-01-01"))
+
+# renaming columns of our data:
+names(crimes) <- c("ID","Borough","Date","Time","Jurisdiction","Code","Level of offense", "Offense", "Premise" , " Suspicious age", " Suspicious race", "Suspicious sex", "Victim age", " Victim race", " Victim sex","Latitude", "Longtitude")
+# need to separte the date column into day, month, year:
+crimes <- separate(crimes, col = Date, into = c("year","month","day"), sep ="-")
+# type of month, day and year:
+#class(crimes$month)
+#class(crimes$day)
+#class(crimes$year)
+# change the month,day and year into factors:
+crimes$month <- as.factor(crimes$month)
+crimes$day <- as.factor(crimes$day)
+crimes$year <- as.factor(crimes$year)
+# checking the type of month, day and year:
+#typeof(crimes$month)
+#typeof(crimes$day)
+#typeof(crimes$year)
+```
+
+
+### II Plotting the graphs 
+
+### Crimes By Boroughs
+
+Let's start looking at the total crime complaints by boroughs
+
+```{r}
+#crimes[!is.na(crimes$Borough), ]
+
+plot1 <- ggplot(data = crimes, aes(x= crimes$Borough,fill = Borough))+
+             geom_bar(colour = "black",stat = "count")+
+             labs(x = "Boroughs Name", y="Count",
+                  title = "crimes by borough")
+
+ggplotly(plot1)
+
+```
+
+
+Brooklyn has the highest frequency of crime complaints  during the first six month of 2019
+
+Interseting, but I will dive more to see how many crimes complaints by month and day. 
+
+### Crimes By Month
+
+
+```{r}
+by_month <- crimes %>% group_by(month) %>% dplyr::summarise(Total = n())
+plot2 <- ggplot(subset(by_month), aes(x= month, y= Total, fill = month)) + geom_bar(stat="identity")
+
+ggplotly(plot2)
+```
+
+May has the most crimes rate during the first 6 month of 2019.
+
+
+### Crimes By Day
+
+```{r}
+by_day <- crimes %>% group_by(day) %>% dplyr::summarise(Total = n())
+plot3 <- ggplot(by_day, aes(x=day, y=Total, fill =day)) + geom_bar(stat="identity")
+
+
+ggplotly(plot3)
+```
+
+Most crimes are recorded during the first day of each month 
+
+
+### Level of offenses
+
+
+```{r}
+p <- ggplot(data = crimes, aes(x= `Level of offense`, fill = `Level of offense`))+
+       geom_bar(stat = "count") + theme_minimal() +
+       labs(x = "Level of offense",
+            y= " Count",
+            title = "Counting the Level of offense")
+
+ggplotly(p)
+
+```
+
+the plot shows that misdeamenor offense is higher than felony and violation.
+
+
+### The frequency of the offenses category
+
+
+```{r}
+
+by_offenses <- crimes %>% group_by(Offense) %>% dplyr :: summarise(Total = n()) %>% subset(Total > 200)
+plot5 <- ggplot(by_offenses, aes(reorder(Offense, Total), Total, fill = Total)) + geom_bar(stat = "identity") + coord_flip() +
+     labs(y = "Total Crimes", x = "Offenses types", title = "Crimes by Offenses")
+
+
+ggplotly(plot5)
+```
+
+Petit Larceny is the most frequent crime followed by Harrasement2
+
+It would be interesting to know how many offenses complaints happen every month and day in 2019.
+
+### The victim age frequency
+
+
+```{r , echo=FALSE}
+by_victim_age <- crimes %>% group_by(`Victim age`, ` Victim sex`) %>% dplyr::summarise(Total = n()) %>% arrange(desc(Total)) %>% subset(Total>10)
+
+plot10 <- ggplot(by_victim_age, aes(x=`Victim age`,y=Total))+ geom_bar(stat="identity", fill= "#DD8888")
+
+ggplotly(plot10)
+```
+
+The highest victim age group is between 25-44. 
+
+### The crimes by premises
+
+
+```{r }
+
+
+by_premises <- crimes %>% group_by(Premise) %>% dplyr::summarise(Total=n()) %>% arrange(desc(Total)) %>% subset(Total >760)
+plot12 <- ggplot(by_premises, aes(reorder(Premise, Total),Total,fill = Total)) + geom_bar(stat="identity") + coord_flip() + labs( y= "Count", x = "Premises", title= "The crimes complaints by premises")
+ggplotly(plot12)
+
+```
+
+The most crimes occurred either in the street or residence apt or houses.
+
+
+### III Plotting the Maps
+
+
+```{r }
+# Loading Leaflet for creating maps with latitude and longtitude data we have:
+library(leaflet)
+library(leaflet.extras)
+
+```
+
+```{r}
+# we need to clean the data and make sure we don't have NA's:
+sum(is.na(crimes))
+crimes1 <- na.omit(crimes)
+sum(is.na(crimes1))
+
+```
+
+```{r }
+# Mapping the GAMBLING Crimes in NYC by using open street map:
+kidnapping <- crimes1[crimes1$Offense=="KIDNAPPING & RELATED OFFENSES",]
+kidnapping %>% leaflet() %>% addTiles() %>%
+  addProviderTiles(providers$CartoDB.DarkMatter) %>%
+  addWebGLHeatmap(lng=kidnapping$Longtitude, lat=kidnapping$Latitude, size =5000)
+
+```
+
+
+
+```{r }
+# Mapping the PETIT LARCENY Offense in NYC:
+Larceny <- crimes1[crimes1$Offense == "PETIT LARCENY",]
+Larceny %>%  leaflet() %>% addTiles() %>% 
+  addProviderTiles(providers$CartoDB.DarkMatter) %>%
+  addWebGLHeatmap(lng=Larceny$Longtitude, lat=Larceny$Latitude, size = 700)
+```
+
+
+```{r }
+# Mapping the Harrassment 2 offense in NYC:
+Harssment <- crimes1[crimes1$Offense == "HARRASSMENT 2",]
+Harssment %>% leaflet() %>% addTiles() %>%
+  addProviderTiles(providers$CartoDB.DarkMatter) %>%
+  addWebGLHeatmap(lng=Harssment$Longtitude, lat=Harssment$Latitude, size = 400)
+```
+
+
+By looking on the maps we can see clearly how Larceny and Harssement are spreaded more than kidnapping and related offenses in manhattan area up to Bronx and relatively rarely in staten island. 
+
+
+### Conclusion
+
+Thanks for listening, this is a review answers of the questions asked in the introduction :
+
+1. What parts of the city have the most crime complaints during 2019?
+- Brooklyn has the highest crime complaints during the first six month of 2019
+
+2. Has the crimes complaint improved over months and days during 2019?
+- May has the most crimes rate during the first 6 month of 2019 maybe because of the summer season.
+- The first day of each month is where the most crimes happened during 2019
+
+3. what type of offenses or offenses categories to be considered high?
+- the MISDEMEANOR is the most highest level of offense.
+- Petit larceny and harrasement 2 considred to be high during may in 2019
+- Petit Larceny,Harrassment 2 and Assualt & related offenses are the highest offenses during first day of week.
+
+4. Which premises have the highest crime rate?
+- Street and residence considered to have the most offenses complaints during the year
+6. Which victim gendre to be more attacked by suspicious?
+- The victim age group is between 25-44.
+
+7. Which geographical area has the more crimes complaints not considered safe?
+- The maps shows how Larceny and Harssement are spreaded more than kidnapping and related offenses in manhattan area up to Bronx and relatively rarely in staten island.
+
